@@ -412,6 +412,18 @@ class MainActivity : AudioServiceActivity(), GamepadsCompatibleActivity {
                 "isTvDevice" -> {
                     result.success(isTvDevice())
                 }
+                // True while the activity is shown on a display other than
+                // the phone's own, which is how Android Auto runs parked apps
+                // on the car screen.
+                "isOnCarDisplay" -> {
+                    val displayId = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                        display?.displayId ?: android.view.Display.DEFAULT_DISPLAY
+                    } else {
+                        @Suppress("DEPRECATION")
+                        windowManager.defaultDisplay.displayId
+                    }
+                    result.success(displayId != android.view.Display.DEFAULT_DISPLAY)
+                }
                 "displayHdrTypes" -> result.success(getDisplayHdrTypes())
                 "displayCapabilities" -> {
                     // The caller stamps why it asked, so the probe log can tell

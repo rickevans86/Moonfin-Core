@@ -1,2 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Android Auto parked apps (phone builds only). appCategory="video"
+         tells the car host this is a video app, and CAR_LAUNCHER puts the
+         full app in the Android Auto launcher so it can run on the car
+         screen while parked. Android Auto hides the activity once the car
+         starts moving; PlaybackLifecycleHandler pauses video when that
+         happens on the car display. -->
+    <application android:appCategory="video">
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.CAR_LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
 </manifest>

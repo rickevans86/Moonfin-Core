@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:playback_core/playback_core.dart';
 
@@ -78,6 +79,9 @@ class PlaybackLifecycleHandler with WidgetsBindingObserver {
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
         _saveState();
+        if (PlatformDetection.isAndroid && !PlatformDetection.isTV) {
+          unawaited(_pauseIfOnCarDisplay());
+        }
         final backend = _manager.backend;
         if (backend is Media3PlayerBackend) {
           unawaited(backend.appPaused());
@@ -96,6 +100,24 @@ class PlaybackLifecycleHandler with WidgetsBindingObserver {
       default:
         break;
     }
+  }
+
+  static const _platformChannel =
+      MethodChannel('org.moonfin.androidtv/platform');
+
+  // Android Auto hides parked apps once the car starts moving. Video must
+  // not keep playing then, so pause it when the player was on the car screen.
+  Future<void> _pauseIfOnCarDisplay() async {
+    bool onCar = false;
+    try {
+      onCar = await _platformChannel.invokeMethod<bool>('isOnCarDisplay') ??
+          false;
+    } catch (_) {
+      return;
+    }
+    if (!onCar) return;
+    _wasPlaying = false;
+    await _manager.pause();
   }
 
   void _scheduleVideoStop(dynamic currentItem) {
