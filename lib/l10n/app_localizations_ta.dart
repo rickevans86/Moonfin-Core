@@ -10,7 +10,7 @@ class AppLocalizationsTa extends AppLocalizations {
   AppLocalizationsTa([String locale = 'ta']) : super(locale);
 
   @override
-  String get appTitle => 'Moonfin';
+  String get appTitle => 'Moonfin-Auto';
 
   @override
   String get animeMarkerFiller => 'Filler';

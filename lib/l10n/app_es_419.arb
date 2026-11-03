@@ -7338,7 +7338,7 @@
     "@clockModeBouncing": {
         "description": "Screensaver clock mode: bounces around the screen"
     },
-    "appTitle": "Moonfin",
+    "appTitle": "Moonfin-Auto",
     "@appTitle": {
         "description": "The application title"
     },

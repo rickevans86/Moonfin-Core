@@ -10,7 +10,7 @@ class AppLocalizationsUg extends AppLocalizations {
   AppLocalizationsUg([String locale = 'ug']) : super(locale);
 
   @override
-  String get appTitle => 'Moonfin';
+  String get appTitle => 'Moonfin-Auto';
 
   @override
   String get animeMarkerFiller => 'Filler';
