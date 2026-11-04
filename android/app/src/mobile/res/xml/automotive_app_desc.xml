@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phone builds: besides the media browser, tell Android Auto this app has
+     a projection service (MoonfinCarService, the "Moonfin-Auto Video" screen).
+     Without "projection" Android Auto never lists it. Same as Fermata Auto. -->
+<automotiveApp xmlns:tools="http://schemas.android.com/tools">
+    <uses name="media" />
+    <uses
+        name="service"
+        tools:ignore="InvalidUsesTagAttribute" />
+    <uses
+        name="projection"
+        tools:ignore="InvalidUsesTagAttribute" />
+</automotiveApp>
