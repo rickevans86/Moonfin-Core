@@ -200,6 +200,11 @@ dependencies {
     implementation("eu.simonbinder:sqlite3-native-library:3.52.0")
     implementation("androidx.tvprovider:tvprovider:1.1.0")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
+    // Moonfin-Auto car screen: Google's unofficial Android Auto SDK (see
+    // libs/README.md) and the AndroidX pieces it calls into.
+    implementation(files("libs/aauto.aar"))
+    implementation("androidx.fragment:fragment:1.8.5")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 }
 
 val flutterApkOutputDir = layout.buildDirectory.dir("app/outputs/flutter-apk")

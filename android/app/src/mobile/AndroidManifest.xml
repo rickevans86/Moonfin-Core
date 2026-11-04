@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Lets the in-app updater hand a downloaded APK to the system installer. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- Car screen (MoonfinCarService): location is used only to tell when the
+         car is moving so video can be paused; "display over other apps" lets
+         the app move its own screen onto the car display. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
     <!-- Android Auto parked apps (phone builds only). appCategory="video"
          tells the car host this is a video app, and CAR_LAUNCHER puts the
@@ -15,6 +21,21 @@
                 <category android:name="android.intent.category.CAR_LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- Shows Moonfin-Auto's full screen, video player included, on the
+             Android Auto display through Android Auto's unofficial projection
+             API (the same one Fermata Auto uses). Needs "Unknown sources" on
+             in Android Auto's developer settings. -->
+        <service
+            android:name="org.moonfin.androidtv.car.MoonfinCarService"
+            android:exported="true"
+            android:label="Moonfin-Auto Video">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="com.google.android.gms.car.category.CATEGORY_PROJECTION"/>
+                <category android:name="com.google.android.gms.car.category.CATEGORY_PROJECTION_OEM"/>
+            </intent-filter>
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

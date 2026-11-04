@@ -48,6 +48,33 @@ class PlaybackLifecycleHandler with WidgetsBindingObserver {
 
   PlaybackLifecycleHandler(this._manager) {
     WidgetsBinding.instance.addObserver(this);
+    if (PlatformDetection.isAndroid && !PlatformDetection.isTV) {
+      _carChannel.setMethodCallHandler(_onCarCall);
+    }
+  }
+
+  // Moonfin-Auto car screen: the native side watches the car's speed and
+  // says when it starts moving. Video stops then; audio keeps playing.
+  static const _carChannel = MethodChannel('org.moonfin.androidtv/car');
+
+  Future<void> _onCarCall(MethodCall call) async {
+    if (call.method != 'drivingChanged' || call.arguments != true) return;
+    if (_isAudioItem(_manager.queueService.currentItem)) return;
+    if (_manager.state.isPlaying) {
+      _wasPlaying = false;
+      await _manager.pause();
+    }
+  }
+
+  bool _isAudioItem(dynamic currentItem) {
+    if (currentItem is AggregatedItem) return currentItem.isAudioLike;
+    if (currentItem is String) {
+      final meta = _manager.currentOfflineMetadata;
+      final type = meta?['Type']?.toString();
+      final mediaType = meta?['MediaType']?.toString();
+      return type == 'Audio' || type == 'AudioBook' || mediaType == 'Audio';
+    }
+    return false;
   }
 
   @override

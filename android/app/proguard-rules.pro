@@ -44,3 +44,12 @@
     native <methods>;
 }
 -keepattributes EnclosingMethod,InnerClasses
+
+# Moonfin-Auto car screen: Android Auto finds these by name.
+-keep class com.google.android.apps.auto.sdk.** { *; }
+-keep class com.google.android.gms.car.** { *; }
+-keep class android.support.car.** { *; }
+-keep class org.moonfin.androidtv.car.** { *; }
+-dontwarn com.google.android.apps.auto.sdk.**
+-dontwarn com.google.android.gms.car.**
+-dontwarn android.support.car.**
