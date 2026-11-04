@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -68,9 +69,11 @@ Future<void> showAppUpdateDialog(
   if (choice == null || !context.mounted) return;
 
   if (choice == 'download' &&
-      Platform.isWindows &&
-      update.downloadUri.isScheme('https')) {
-    await _downloadAndInstallWindowsUpdate(context, update);
+      update.downloadUri.isScheme('https') &&
+      (Platform.isWindows ||
+          (Platform.isAndroid &&
+              update.downloadUri.path.toLowerCase().endsWith('.apk')))) {
+    await downloadAndInstallUpdate(context, update);
     return;
   }
 
@@ -79,7 +82,9 @@ Future<void> showAppUpdateDialog(
   await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
-Future<void> _downloadAndInstallWindowsUpdate(
+/// Downloads the update and starts installing it: the APK installer on
+/// Android, the setup program on Windows.
+Future<void> downloadAndInstallUpdate(
   BuildContext context,
   DesktopUpdateInfo update,
 ) async {
@@ -147,7 +152,16 @@ Future<void> _downloadAndInstallWindowsUpdate(
 
   try {
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}${Platform.pathSeparator}moonfin_updater.exe');
+    // Android hands the APK to the installer through a FileProvider that
+    // only shares the cache's updates/ folder.
+    final dir = Platform.isAndroid
+        ? Directory('${tempDir.path}${Platform.pathSeparator}updates')
+        : tempDir;
+    if (!await dir.exists()) await dir.create(recursive: true);
+    final file = File(
+      '${dir.path}${Platform.pathSeparator}'
+      '${Platform.isAndroid ? 'moonfin_auto_update.apk' : 'moonfin_updater.exe'}',
+    );
     if (await file.exists()) {
       await file.delete();
     }
@@ -180,6 +194,22 @@ Future<void> _downloadAndInstallWindowsUpdate(
       client.close();
     }
 
+    if (Platform.isAndroid) {
+      const channel = MethodChannel('org.moonfin.androidtv/platform');
+      final status = await channel.invokeMethod<String>(
+        'installApk',
+        {'path': file.path},
+      );
+      if (status == 'needsPermission') {
+        errorNotifier.value =
+            'Allow Moonfin-Auto to install apps on the screen that just '
+            'opened, then come back and tap Check for updates again.';
+        return;
+      }
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      return;
+    }
+
     await Process.start(
       file.path,
       [],
@@ -187,7 +217,7 @@ Future<void> _downloadAndInstallWindowsUpdate(
     );
     exit(0);
   } catch (e) {
-    debugPrint('Windows in-app update failed: $e');
+    debugPrint('In-app update failed: $e');
     errorNotifier.value = l10n.updateDownloadFailed;
   }
 }

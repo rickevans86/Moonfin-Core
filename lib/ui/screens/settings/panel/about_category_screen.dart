@@ -43,7 +43,7 @@ class _AboutCategoryScreen extends StatelessWidget {
                 subtitle: Text(l10n.sourceCodeUrl),
                 onTap: () => showQrOrLaunch(
                   context,
-                  url: 'https://github.com/Moonfin-Client/Moonfin-Core',
+                  url: 'https://github.com/rickevans86/Moonfin-Core',
                   title: l10n.sourceCode,
                 ),
               ),
@@ -53,7 +53,7 @@ class _AboutCategoryScreen extends StatelessWidget {
                 subtitle: Text(l10n.settingsReportAnIssueSubtitle),
                 onTap: () => showQrOrLaunch(
                   context,
-                  url: 'https://github.com/Moonfin-Client/Moonfin-Core/issues',
+                  url: 'https://github.com/rickevans86/Moonfin-Core/issues',
                   title: l10n.settingsReportAnIssue,
                 ),
               ),

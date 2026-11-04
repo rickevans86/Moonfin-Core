@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -8,6 +9,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/services/app_update_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../util/platform_detection.dart';
+import '../navigation/app_router.dart';
+import 'app_update_dialog.dart';
 import 'status_banner_pill.dart';
 
 /// Floating glass pill announcing a newer GitHub release. Mirrors the offline
@@ -107,12 +110,25 @@ class _AppUpdateBannerState extends State<AppUpdateBanner>
             label: l10n.download,
             tint: tint,
             onTap: () {
-              unawaited(
-                launchUrl(
-                  update.downloadUri,
-                  mode: LaunchMode.externalApplication,
-                ),
-              );
+              // Moonfin-Auto: on Android, download the APK from this fork's
+              // release and open the installer instead of the browser.
+              if (Platform.isAndroid &&
+                  update.downloadUri.path.toLowerCase().endsWith('.apk')) {
+                // The banner sits above the app's navigator, so the
+                // progress dialog needs the navigator's own context.
+                final navContext =
+                    appRouter.routerDelegate.navigatorKey.currentContext;
+                if (navContext != null) {
+                  unawaited(downloadAndInstallUpdate(navContext, update));
+                }
+              } else {
+                unawaited(
+                  launchUrl(
+                    update.downloadUri,
+                    mode: LaunchMode.externalApplication,
+                  ),
+                );
+              }
               unawaited(_dismiss());
             },
           ),

@@ -412,6 +412,44 @@ class MainActivity : AudioServiceActivity(), GamepadsCompatibleActivity {
                 "isTvDevice" -> {
                     result.success(isTvDevice())
                 }
+                // Opens the system installer for an APK the in-app updater
+                // downloaded. Returns "needsPermission" after sending the user
+                // to the "install unknown apps" screen if that isn't allowed.
+                "installApk" -> {
+                    val path = call.argument<String>("path")
+                    if (path == null) {
+                        result.error("bad_args", "path is required", null)
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                        !packageManager.canRequestPackageInstalls()
+                    ) {
+                        startActivity(
+                            Intent(
+                                android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                Uri.parse("package:$packageName"),
+                            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                        result.success("needsPermission")
+                    } else {
+                        try {
+                            val uri = androidx.core.content.FileProvider.getUriForFile(
+                                this,
+                                "$packageName.updates",
+                                java.io.File(path),
+                            )
+                            startActivity(
+                                Intent(Intent.ACTION_VIEW)
+                                    .setDataAndType(uri, "application/vnd.android.package-archive")
+                                    .addFlags(
+                                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                            Intent.FLAG_ACTIVITY_NEW_TASK,
+                                    ),
+                            )
+                            result.success("started")
+                        } catch (e: Exception) {
+                            result.error("install_failed", e.message, null)
+                        }
+                    }
+                }
                 // True while the activity is shown on a display other than
                 // the phone's own, which is how Android Auto runs parked apps
                 // on the car screen.
