@@ -68,6 +68,7 @@ import 'util/platform_detection.dart';
 import 'util/tv_ui_scale.dart';
 import 'ui/widgets/overlay_sheet.dart';
 import 'package:moonfin_design/moonfin_design.dart';
+import 'util/car_ui_scale.dart';
 import 'util/focus/key_event_utils.dart';
 import 'util/focus/gamepad/gamepad_navigation_scope.dart';
 import 'util/focus/gamepad/gamepad_key_synthesizer.dart';
@@ -392,7 +393,11 @@ class _MoonfinAppState extends State<MoonfinApp> {
                     // change to the interface layout override is picked up.
                     final mainChild = PlatformDetection.isTV
                         ? TvUiScale(child: overlay)
-                        : overlay;
+                        : PlatformDetection.isAndroid
+                            // Moonfin-Auto: lays out for the car screen while
+                            // drawing on Android Auto; a no-op otherwise.
+                            ? CarUiScale(child: overlay)
+                            : overlay;
                     final scale = _prefs
                         .get(UserPreferences.desktopUiScale)
                         .scaleFactor;

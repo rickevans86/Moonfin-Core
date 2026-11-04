@@ -6,6 +6,7 @@ import 'package:playback_core/playback_core.dart';
 
 import '../data/models/aggregated_item.dart';
 import '../util/platform_detection.dart';
+import '../platform/car_screen_bridge.dart';
 import 'media3_player_backend.dart';
 
 class _StaleVideoClaim {
@@ -49,17 +50,15 @@ class PlaybackLifecycleHandler with WidgetsBindingObserver {
   PlaybackLifecycleHandler(this._manager) {
     WidgetsBinding.instance.addObserver(this);
     if (PlatformDetection.isAndroid && !PlatformDetection.isTV) {
-      _carChannel.setMethodCallHandler(_onCarCall);
+      CarScreenBridge.addListener(_onCarCall);
     }
   }
 
   // Moonfin-Auto car screen: the native side watches the car's speed and
   // says when it starts moving. Video stops then; audio keeps playing.
-  static const _carChannel = MethodChannel('org.moonfin.androidtv/car');
-
-  Future<void> _onCarCall(MethodCall call) async {
-    final stopVideo = call.method == 'carClosed' ||
-        (call.method == 'drivingChanged' && call.arguments == true);
+  Future<void> _onCarCall(String method, Object? arguments) async {
+    final stopVideo = method == 'carClosed' ||
+        (method == 'drivingChanged' && arguments == true);
     if (!stopVideo) return;
     if (_isAudioItem(_manager.queueService.currentItem)) return;
     if (_manager.state.isPlaying) {

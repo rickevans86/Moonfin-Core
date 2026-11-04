@@ -79,10 +79,14 @@ object CarScreen {
             findFlutterView(mainActivity.get())?.let {
                 if (it.isAttachedToFlutterEngine) it.detachFromFlutterEngine()
             }
-            // Native views inside Flutter (the video player) are sized with the
-            // phone's screen density, since they belong to the phone's
+            // Native views inside Flutter (the video player) are placed using
+            // the phone's screen density, since they belong to the phone's
             // activity. Give the car's Flutter view the same density so the
-            // two agree; otherwise video comes out a fraction of its size.
+            // two agree (otherwise video comes out a fraction of its size),
+            // and tell Dart the car's real density so it lays the app out for
+            // the car (CarUiScale).
+            val carDensity = carContext.resources.displayMetrics.density
+            val phoneDensity = carContext.applicationContext.resources.displayMetrics.density
             val config = android.content.res.Configuration(carContext.resources.configuration)
             config.densityDpi = carContext.applicationContext.resources.configuration.densityDpi
             val viewContext = android.view.ContextThemeWrapper(carContext, 0).apply {
@@ -100,6 +104,7 @@ object CarScreen {
             // The phone is usually locked in the car. Flutter stops drawing
             // when the app is paused, so tell it it's in front.
             eng.lifecycleChannel.appIsResumed()
+            sendUiScale(eng, carDensity / phoneDensity)
             startDrivingMonitor(carContext.applicationContext)
         } catch (e: Exception) {
             Log.w(TAG, "Couldn't show Moonfin-Auto on the car screen", e)
@@ -115,6 +120,7 @@ object CarScreen {
         removeCarView()
         val eng = engine
         if (eng != null) {
+            sendUiScale(eng, null)
             findFlutterView(mainActivity.get())?.let {
                 if (!it.isAttachedToFlutterEngine) it.attachToFlutterEngine(eng)
             }
@@ -133,6 +139,11 @@ object CarScreen {
                 .invokeMethod("carClosed", null)
         }
         returnToPhone()
+    }
+
+    private fun sendUiScale(eng: FlutterEngine, scale: Float?) {
+        MethodChannel(eng.dartExecutor.binaryMessenger, CAR_CHANNEL)
+            .invokeMethod("uiScale", scale?.toDouble())
     }
 
     private fun removeCarView() {
