@@ -79,7 +79,16 @@ object CarScreen {
             findFlutterView(mainActivity.get())?.let {
                 if (it.isAttachedToFlutterEngine) it.detachFromFlutterEngine()
             }
-            val view = FlutterView(carContext)
+            // Native views inside Flutter (the video player) are sized with the
+            // phone's screen density, since they belong to the phone's
+            // activity. Give the car's Flutter view the same density so the
+            // two agree; otherwise video comes out a fraction of its size.
+            val config = android.content.res.Configuration(carContext.resources.configuration)
+            config.densityDpi = carContext.applicationContext.resources.configuration.densityDpi
+            val viewContext = android.view.ContextThemeWrapper(carContext, 0).apply {
+                applyOverrideConfiguration(config)
+            }
+            val view = FlutterView(viewContext)
             host.addView(
                 view,
                 ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
