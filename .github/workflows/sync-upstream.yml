@@ -1,0 +1,113 @@
+name: Sync with official Moonfin
+
+# Once a day, checks whether the official Moonfin (Moonfin-Client/Moonfin-Core)
+# has published a new release. If it has, merges that release into this
+# fork's main branch and starts a new Moonfin-Auto release, so the app's
+# update check picks it up. If the merge can't be done automatically, the run
+# fails with an explanation (GitHub emails you about failed runs).
+on:
+  schedule:
+    - cron: '17 20 * * *' # 7:17am Melbourne (daylight time)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPO: Moonfin-Client/Moonfin-Core
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # A token with the "workflows" permission lets the merge include
+          # upstream changes to .github/workflows, which GitHub's built-in
+          # token isn't allowed to push. Optional; see the error below.
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+
+      - name: Find the latest official release
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=$(gh api "repos/$UPSTREAM_REPO/releases/latest" --jq .tag_name)
+          if [ -z "$TAG" ]; then
+            echo "::error::Couldn't read the latest release of $UPSTREAM_REPO."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Latest official Moonfin release: $TAG"
+
+      - name: Check whether this fork already has it
+        id: check
+        run: |
+          git remote add upstream "https://github.com/$UPSTREAM_REPO.git"
+          git fetch --no-tags upstream "refs/tags/${{ steps.upstream.outputs.tag }}:refs/upstream-release"
+          if git merge-base --is-ancestor refs/upstream-release HEAD; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Up to date: Moonfin-Auto already includes Moonfin ${{ steps.upstream.outputs.tag }}." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "Moonfin ${{ steps.upstream.outputs.tag }} is new. Merging it in." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Merge the official release
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          TAG="${{ steps.upstream.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git merge --no-edit -m "Merge official Moonfin $TAG" refs/upstream-release; then
+            {
+              echo "### Moonfin $TAG needs a manual merge"
+              echo
+              echo "These files changed both in the official app and in Moonfin-Auto:"
+              echo
+              git diff --name-only --diff-filter=U | sed 's/^/- /'
+              echo
+              echo "Ask Claude to merge Moonfin $TAG into rickevans86/Moonfin-Core and resolve the conflicts."
+            } >> "$GITHUB_STEP_SUMMARY"
+            git merge --abort
+            echo "::error::Moonfin $TAG conflicts with Moonfin-Auto's changes. See the run summary."
+            exit 1
+          fi
+
+      - name: Push to main
+        if: steps.check.outputs.needed == 'true'
+        run: |
+          if ! git push origin HEAD:main; then
+            {
+              echo "### Couldn't push Moonfin ${{ steps.upstream.outputs.tag }}"
+              echo
+              echo "The merge worked, but GitHub refused the push. This usually means the official"
+              echo "release changed files under .github/workflows, which the built-in token can't update."
+              echo
+              echo "Fix: create a fine-grained personal access token for this repo with"
+              echo "**Contents: Read and write** and **Workflows: Read and write**, save it as a"
+              echo "repository secret named **SYNC_TOKEN**, then re-run this workflow."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Push refused. See the run summary for the fix."
+            exit 1
+          fi
+          echo "Merged and pushed Moonfin ${{ steps.upstream.outputs.tag }}." >> "$GITHUB_STEP_SUMMARY"
+
+      # A push made with the built-in token doesn't start other workflows, so
+      # start the release build directly. With SYNC_TOKEN the push already did.
+      - name: Start a Moonfin-Auto release
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAS_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN != '' }}
+        run: |
+          if [ "$HAS_SYNC_TOKEN" != "true" ]; then
+            gh workflow run release-moonfin-auto.yml --ref main
+          fi
