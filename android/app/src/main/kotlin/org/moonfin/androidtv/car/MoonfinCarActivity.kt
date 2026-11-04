@@ -86,7 +86,8 @@ class MoonfinCarActivity : CarActivity(), SurfaceHolder.Callback {
                     "Display over other apps."
             }
             CarScreen.driving -> "Video is paused while the car is moving."
-            !CarScreen.isAppOnCar -> "Moonfin-Auto is open on your phone.\n\nTap to show it here."
+            !CarScreen.isAppOnCar -> "Moonfin-Auto is open on your phone.\n\nTap to show it here." +
+                (CarScreen.lastError?.let { "\n\n($it)" } ?: "")
             else -> null
         }
         message.text = text ?: ""

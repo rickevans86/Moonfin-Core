@@ -19,7 +19,13 @@
          starts moving; PlaybackLifecycleHandler pauses video when that
          happens on the car display. -->
     <application android:appCategory="video">
-        <activity android:name=".MainActivity">
+        <!-- allowEmbedded: Android only lets an app start an activity on a
+             virtual display it created (the car screen, see CarScreen) when
+             the activity allows being embedded. -->
+        <activity
+            android:name=".MainActivity"
+            android:allowEmbedded="true"
+            android:resizeableActivity="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.CAR_LAUNCHER"/>

@@ -140,13 +140,62 @@ object CarScreen {
     }
 
     private fun launch(ctx: Context, displayId: Int) {
+        // Starting an activity while the app is in the background is only
+        // allowed for apps that can draw over other apps, and since Android 15
+        // only while such an overlay is actually showing. Show a 1px one for
+        // the moment of the launch.
+        val overlay = showLaunchOverlay(ctx)
         try {
             val intent = Intent(ctx, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val options = ActivityOptions.makeBasic().setLaunchDisplayId(displayId)
+            lastError = null
             ctx.startActivity(intent, options.toBundle())
+            // Android can drop a launch without any error, so check it landed.
+            if (displayId != Display.DEFAULT_DISPLAY) {
+                handler.postDelayed({
+                    if (!isAppOnCar && virtualDisplay?.display?.displayId == displayId) {
+                        lastError = "Android didn't move the app to the car screen"
+                        onStateChanged?.invoke()
+                    }
+                }, 2500)
+            }
         } catch (e: Exception) {
             Log.w(TAG, "Couldn't move Moonfin-Auto to display $displayId", e)
+            lastError = e.message ?: e.javaClass.simpleName
+            onStateChanged?.invoke()
+        } finally {
+            overlay?.let { v ->
+                handler.postDelayed({
+                    runCatching {
+                        ctx.getSystemService(android.view.WindowManager::class.java).removeView(v)
+                    }
+                }, 1500)
+            }
+        }
+    }
+
+    /** Last reason a move to the car screen failed, shown on the car screen. */
+    var lastError: String? = null
+        private set
+
+    private fun showLaunchOverlay(ctx: Context): android.view.View? {
+        if (!Settings.canDrawOverlays(ctx)) return null
+        return try {
+            val wm = ctx.getSystemService(android.view.WindowManager::class.java)
+            val view = android.view.View(ctx)
+            val params = android.view.WindowManager.LayoutParams(
+                1, 1,
+                android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                android.graphics.PixelFormat.TRANSLUCENT,
+            )
+            wm.addView(view, params)
+            view
+        } catch (e: Exception) {
+            Log.w(TAG, "Couldn't show the launch overlay", e)
+            null
         }
     }
 
