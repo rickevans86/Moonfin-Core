@@ -58,7 +58,9 @@ class PlaybackLifecycleHandler with WidgetsBindingObserver {
   static const _carChannel = MethodChannel('org.moonfin.androidtv/car');
 
   Future<void> _onCarCall(MethodCall call) async {
-    if (call.method != 'drivingChanged' || call.arguments != true) return;
+    final stopVideo = call.method == 'carClosed' ||
+        (call.method == 'drivingChanged' && call.arguments == true);
+    if (!stopVideo) return;
     if (_isAudioItem(_manager.queueService.currentItem)) return;
     if (_manager.state.isPlaying) {
       _wasPlaying = false;

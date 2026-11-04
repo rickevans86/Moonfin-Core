@@ -316,31 +316,13 @@ class MainActivity : AudioServiceActivity(), GamepadsCompatibleActivity {
         }
         deepLinkFrom(intent)?.let { pendingDeepLink = it }
         gameInputManager?.registerInputDeviceListener(gameInputDeviceListener, null)
-        org.moonfin.androidtv.car.CarScreen.onMainActivityDisplay(this, currentDisplayId())
+        org.moonfin.androidtv.car.CarScreen.onMainActivityCreated(this)
     }
 
-    // Moonfin-Auto car screen: which display this activity is on, and keeping
-    // CarScreen told when Android moves it between the phone and the car.
-    private fun currentDisplayId(): Int =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            display?.displayId ?: android.view.Display.DEFAULT_DISPLAY
-        } else {
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay.displayId
-        }
-
-    // Moving to another display arrives as a configuration change.
-    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
-        super.onConfigurationChanged(newConfig)
-        org.moonfin.androidtv.car.CarScreen.onMainActivityDisplay(this, currentDisplayId())
-    }
-
-    // Leaving the app from its first screen on the car would end the whole
-    // process (see onDestroy), so back does nothing there.
-    override fun finish() {
-        if (org.moonfin.androidtv.car.CarScreen.isCarDisplay(currentDisplayId())) return
-        super.finish()
-    }
+    // Moonfin-Auto car screen: while the app is drawing on the car, the
+    // phone's comings and goings mustn't pause Flutter.
+    override fun shouldDispatchAppLifecycleState(): Boolean =
+        org.moonfin.androidtv.car.CarScreen.phoneOwnsLifecycle
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -371,6 +353,8 @@ class MainActivity : AudioServiceActivity(), GamepadsCompatibleActivity {
         val id = AudioServicePlugin.getFlutterEngineId()
         val cached = cache.get(id) ?: return
         if (cached === engineHandedToActivity || AudioServiceState.isPlaying()) return
+        // The car screen is drawing with it.
+        if (org.moonfin.androidtv.car.CarScreen.isAppOnCar) return
         cache.remove(id)
         cached.destroy()
         // The next engine is built synchronously in super.onCreate, so no car
@@ -478,7 +462,7 @@ class MainActivity : AudioServiceActivity(), GamepadsCompatibleActivity {
                 // the phone's own, which is how Android Auto runs parked apps
                 // on the car screen.
                 "isOnCarDisplay" -> {
-                    result.success(currentDisplayId() != android.view.Display.DEFAULT_DISPLAY)
+                    result.success(org.moonfin.androidtv.car.CarScreen.isAppOnCar)
                 }
                 "displayHdrTypes" -> result.success(getDisplayHdrTypes())
                 "displayCapabilities" -> {
@@ -1031,6 +1015,7 @@ class MainActivity : AudioServiceActivity(), GamepadsCompatibleActivity {
     }
 
     override fun onPause() {
+        org.moonfin.androidtv.car.CarScreen.onMainActivityPaused(this)
         // Both before super, and both required. releaseHeldInput drops buttons
         // physically held as the app goes away, so they cannot fire on resume.
         // onHostPause pauses the core and drops the surface while the consumer
@@ -1147,12 +1132,10 @@ class MainActivity : AudioServiceActivity(), GamepadsCompatibleActivity {
     }
 
     override fun onResume() {
+        // Opening the app on the phone takes it back from the car screen.
+        org.moonfin.androidtv.car.CarScreen.onMainActivityResumed(this)
         super.onResume()
-        val displayId = currentDisplayId()
-        org.moonfin.androidtv.car.CarScreen.onMainActivityDisplay(this, displayId)
-        if (displayId == android.view.Display.DEFAULT_DISPLAY) {
-            org.moonfin.androidtv.car.CarScreen.continueSetup(this)
-        }
+        org.moonfin.androidtv.car.CarScreen.continueSetup(this)
         // Re-attach the emulator's output surface on devices where Flutter's
         // SurfaceProducer callbacks never fire (API 24-28). A no-op everywhere
         // else - the bridge stands down as soon as it sees a real callback.

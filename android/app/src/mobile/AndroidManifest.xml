@@ -3,11 +3,9 @@
     <!-- Lets the in-app updater hand a downloaded APK to the system installer. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- Car screen (MoonfinCarService): location is used only to tell when the
-         car is moving so video can be paused; "display over other apps" lets
-         the app move its own screen onto the car display. -->
+         car is moving so video can be paused. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <!-- The Android Auto SDK is an old library with no target SDK, so the
          manifest merger would add this to it; the app never needs it. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" tools:node="remove"/>
@@ -19,13 +17,7 @@
          starts moving; PlaybackLifecycleHandler pauses video when that
          happens on the car display. -->
     <application android:appCategory="video">
-        <!-- allowEmbedded: Android only lets an app start an activity on a
-             virtual display it created (the car screen, see CarScreen) when
-             the activity allows being embedded. -->
-        <activity
-            android:name=".MainActivity"
-            android:allowEmbedded="true"
-            android:resizeableActivity="true">
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.CAR_LAUNCHER"/>
