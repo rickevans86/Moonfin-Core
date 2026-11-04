@@ -167,7 +167,8 @@ class ExternalPlayerService {
                  pkg != 'com.google.android.youtube' &&
                  pkg != 'com.google.android.youtube.tv' &&
                  pkg != 'com.google.android.tv.frameworkpackagestubs' &&
-                 !pkg.startsWith('org.moonfin.androidtv');
+                 !pkg.startsWith('org.moonfin.androidtv') &&
+                 !pkg.startsWith('org.moonfin.auto');
         })
         .toList(growable: false);
   }

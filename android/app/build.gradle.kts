@@ -34,8 +34,10 @@ plugins {
     // it there is safe because push messaging bails immediately on TV anyway -
     // push_messaging_service.dart:38 returns unless PlatformDetection.isMobile,
     // and the initializeApp call is try/caught regardless.
-    id("com.google.gms.google-services")
-        .apply(System.getenv("MOONFIN_TEST_ID_SUFFIX").isNullOrEmpty())
+    // Off in Moonfin-Auto: the phone build has its own application id
+    // (org.moonfin.auto), which upstream's google-services.json doesn't list.
+    // Push messaging just skips itself when Firebase isn't configured.
+    id("com.google.gms.google-services").apply(false)
     // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -96,7 +98,9 @@ android {
         val tvAbis = listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         create("mobile") {
             dimension = "device"
-            applicationId = baseAppId
+            // Its own id so Moonfin-Auto installs alongside the official
+            // Moonfin from the Play Store instead of replacing it.
+            applicationId = "org.moonfin.auto"
             versionCode = flutter.versionCode
             versionName = flutter.versionName
             ndk { abiFilters += mobileAbis }
