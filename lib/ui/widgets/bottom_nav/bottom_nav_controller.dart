@@ -147,8 +147,10 @@ class BottomNavController extends ChangeNotifier {
       gates: gates,
       barItems: barItems(),
       isAvailable: isAvailable,
-      savedAvailable:
-          DownloadsNavSlot.isOffered() && DownloadsNavSlot.hasSavedMedia(),
+      // Moonfin-Auto: offered whenever this user can download, even before
+      // anything is saved, so Downloads never seems to disappear.
+      savedAvailable: DownloadsNavSlot.isOffered() &&
+          (DownloadsNavSlot.isAvailable() || DownloadsNavSlot.hasSavedMedia()),
       shuffle: _prefs.get(UserPreferences.showShuffleButton),
       syncPlay: syncPlay,
       quickConnect: _activeServerHasQuickConnect,

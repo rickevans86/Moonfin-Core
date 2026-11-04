@@ -4173,9 +4173,15 @@ class UserPreferences extends ChangeNotifier {
     defaultValue: 350,
   );
 
+  // Moonfin-Auto: on Android, downloads go to the shared Download/Moonfin
+  // folder by default, so they outlive a reinstall. Turning "Save to
+  // Downloads folder" off in settings still switches back to app storage.
   static final customDownloadPath = Preference(
     key: 'download_custom_path',
-    defaultValue: '',
+    defaultValue:
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+            ? 'mediastore'
+            : '',
   );
 
   // macOS only: base64 security-scoped bookmark for the custom download folder,

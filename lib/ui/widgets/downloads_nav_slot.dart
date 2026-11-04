@@ -44,8 +44,11 @@ class DownloadsNavSlot extends StatelessWidget {
     final presence = GetIt.instance<SavedMediaPresence>();
     return ListenableBuilder(
       listenable: presence,
-      builder: (context, _) =>
-          presence.hasSavedMedia ? builder(context) : const SizedBox.shrink(),
+      // Moonfin-Auto: shown whenever this user can download, even with
+      // nothing saved yet.
+      builder: (context, _) => isAvailable() || presence.hasSavedMedia
+          ? builder(context)
+          : const SizedBox.shrink(),
     );
   }
 }
