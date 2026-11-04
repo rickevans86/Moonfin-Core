@@ -1,10 +1,8 @@
 name: Deploy Web To GitHub Pages
 
 on:
+  # Manual only on this fork, so pushes to main don't try to deploy to Pages.
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 permissions:
   contents: read
